@@ -1,20 +1,19 @@
 # 
 # # FlexiMart ETL Pipeline
 # 
-# This notebook demonstrates a robust ETL pipeline for FlexiMart's customer, product, and sales data.
+# This Python Program demonstrates a robust ETL pipeline for FlexiMart's customer, product, and sales data.
 # 
 # **Features:**
 # - Data cleaning, validation, and transformation
 # - Saving cleaned data to CSV files (with validation and error handling)
 # - Loading cleaned data into MySQL database tables (with validation and error handling)
-# - Logging at every step
 # 
 
 
 # 
 # ## 1. Imports, Logger, and Configuration
 # 
-# This cell imports all necessary libraries, sets up logging, and loads your database credentials from the `.env` file.
+# This cell imports all necessary libraries, sets up logging, and configures global settings.
 # 
 
 import subprocess
@@ -55,22 +54,10 @@ logger = logging.getLogger()
 
 
 # 
-# ## 2. Utility Functions
+# 2. Utility Functions
 # 
-# Created functions for below operations
-# 1. Remove first character from Customer ID, Product Id and Transaction Id (Example: 'C001' -> '001', 'P003' -> '003')
-# 2. Trim leading/trailing spaces from all string columns
-# 3. Standardize phone numbers
-# 4. Standardize product category names
-# 5. Standardize date formats to YYYY-MM-DD
-# 6. Clean leading/trailing spaces from a string value
-# 7. Fill missing product data (Price and stock_quantity) with median values
-# 8. Fill missing email addresses with a unknown_email_{customer_id}
-# 9. Validate DataFrame structure and content
-# 10. Clean CSV file if it exists
-# 11. Get database connection 
-# 12. Generate Quality Report
-
+# Create helper functions for data cleaning, validation, and database operations.
+# These functions will be used throughout the ETL pipeline.
 
 # -------------------- HELPER FUNCTION --------------------
 
@@ -399,24 +386,27 @@ def extract_raw_data_from_csv():
     """
     data_dir='../data'
     try:
+        # Load customers_raw CSV files into DataFrames
         customers = pd.read_csv(os.path.join(data_dir, 'customers_raw.csv'))
-        logger.info(f"Loaded customers_raw.csv with shape {customers.shape}")
+        logger.info(f"Loaded customers_raw.csv file into DataFrame with shape {customers.shape}")
     except Exception as e:
         logger.error(f"Error loading customers_raw.csv: {e}")
         customers = pd.DataFrame()
         print(f"Error loading customers_raw.csv: {e}")
 
     try:
+        # Load products_raw.csv into DataFrame
         products = pd.read_csv(os.path.join(data_dir, 'products_raw.csv'))
-        logger.info(f"Loaded products_raw.csv with shape {products.shape}")
+        logger.info(f"Loaded products_raw.csv file into DataFrame with shape {products.shape}")
     except Exception as e:
         logger.error(f"Error loading products_raw.csv: {e}")
         products = pd.DataFrame()
         print(f"Error loading products_raw.csv: {e}")
 
     try:
+        # Load sales_raw.csv into DataFrame
         sales = pd.read_csv(os.path.join(data_dir, 'sales_raw.csv'))
-        logger.info(f"Loaded sales_raw.csv with shape {sales.shape}")
+        logger.info(f"Loaded sales_raw.csv file into DataFrame with shape {sales.shape}")
     except Exception as e:
         logger.error(f"Error loading sales_raw.csv: {e}")
         sales = pd.DataFrame()
@@ -477,19 +467,10 @@ def clean_customers(customers_df):
         logger.info("Customer data cleaning complete.") 
         # Reorder columns to match SQL table
         return customers_df[['customer_id', 'first_name', 'last_name', 'email', 'phone', 'city', 'registration_date']]
-               
 
-        # Load cleaned customers data into the database
-        #logger.info("--------- Loading data to Customer table initiated ---------")
-        #load_data_to_customers_db(customers_df)
-
-        #return customers
     except Exception as e:
         logger.error(f"Error cleaning customers data: {e}")
         print(f"Error cleaning customers data: {e}")
-
-# Clean customers data: remove duplicates, handle missing emails, standardize phone/city/date
-#customers_clean = clean_customers(customers)
 
 # -------------------- CLEAN PRODUCTS --------------------
 # Clean products data: remove duplicates, handle missing prices/stock, standardize category/name
@@ -537,19 +518,10 @@ def clean_products(products_df):
 
         # Reorder columns to match SQL table
         return products_df[['product_id', 'product_name', 'category', 'price', 'stock_quantity']]
-        
-        
-        # Load cleaned products data into the database
-        #logger.info("--------- Loading data to Product table initiated ---------")
-        #load_data_to_products_db(products_df)
 
-        #return products
     except Exception as e:
         logger.error(f"Error cleaning products data: {e}")
         print(f"Error cleaning products data: {e}")
-
-# Clean products data: remove duplicates, handle missing prices/stock, standardize category/name
-#products_clean = clean_products(products)
 
 # -------------------- CLEAN SALES --------------------
 # Clean sales data: remove duplicates, handle missing IDs, standardize date
@@ -594,8 +566,6 @@ def clean_sales(sales_df):
         print(f"❌ Error cleaning sales data: {e}")
         return pd.DataFrame()
 
-# Clean sales data: remove duplicates, handle missing IDs, standardize date
-#sales_clean = clean_sales(sales)  
 
 # -------------------- SPLIT ORDERS --------------------
 # Split sales data into orders and order_items DataFrames
@@ -640,16 +610,10 @@ def split_sales_to_orders(sales_clean):
 
         logger.info(f"Split sales into orders ({orders.shape})")
         return orders
-        # Load cleaned orders data into the database
-        #logger.info("--------- Loading data to Order table initiated ---------")
-        #load_data_to_orders_db(orders)
         
     except Exception as e:
         logger.error(f"Error splitting sales data: {e}")
         return pd.DataFrame()
-
-# Split sales data into orders and order_items DataFrames
-#order_clean = split_orders(sales_clean)
 
 
 # -------------------- SPLIT ORDER ITEMS --------------------
@@ -695,16 +659,10 @@ def split_sales_to_order_items(sales_clean):
 
         logger.info(f"Split sales into order_items ({order_items.shape})")
         return order_items
-        # Load cleaned order_items data into the database
-        #logger.info("--------- Loading data to Order Item table initiated ---------")
-        #load_data_to_order_items_db(order_items)
         
     except Exception as e:
         logger.error(f"Error splitting sales data: {e}")
         return pd.DataFrame()
-
-# Split sales data into orders and order_items DataFrames
-#order_items_df = split_sales_to_order_items(sales_clean)
 
 # ## 5. Functions for loading the data into different MYSQL tables (Customers, Products, Orders and Order_items)
 # 1. It validate the Dataframe
@@ -714,8 +672,6 @@ def split_sales_to_order_items(sales_clean):
 
 # -------------------- LOAD LOGIC --------------------
 # -------------------- LOADING CUSTOMERS DATA INTO DATABASE --------------------
-
-# Function to load customers data into the database
 
 # --- Database Loading Functions ---
 def load_data_to_table(df, table_name, columns, insert_query, delete_queries=None):
@@ -967,4 +923,3 @@ def main():
 # -------------------- ENTRY POINT --------------------
 if __name__ == "__main__":
     main()
-
