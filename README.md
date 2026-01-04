@@ -14,6 +14,7 @@ The FlexiMart Data Architecture Project focuses on designing and implementing a 
 ---
 
 ## Repository Structure
+```
 ├── data/
 │   ├── customers_raw.csv
 │   ├── products_raw.csv
@@ -37,7 +38,7 @@ The FlexiMart Data Architecture Project focuses on designing and implementing a 
 │   ├── README.md
 │   └── analytics_queries.sql
 └── README.md
-
+```
 ---
 
 ## Technologies Used
