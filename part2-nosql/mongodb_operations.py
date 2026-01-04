@@ -31,7 +31,6 @@ from typing import List, Dict, Tuple
 
 # -------------------- CONFIGURATION --------------------
 LOG_FILE = "mongodb_operations.log"
-JSON_FILE = "products_catalog.json"
 
 # -------------------- LOGGER SETUP --------------------
 # Set up logging to record mongodb operations events and errors for debugging and auditing
@@ -48,7 +47,7 @@ logger = logging.getLogger()
 
 # --------------- MONGODB CONNECTION SETUP --------------------
 # Function to connect to MongoDB
-def connect_to_mongodb():
+def connect_to_mongodb() -> Tuple[MongoClient, any]:
     """
     Connect to MongoDB using credentials from .env file.
     Returns the MongoDB client and the specified database and collection.
@@ -78,16 +77,13 @@ def connect_to_mongodb():
         # Test connection
         client.admin.command('ping')
         logger.info(f"Connected to MongoDB successfully. {client.server_info()}")
-        return collection
+        return client, collection
     except errors.ServerSelectionTimeoutError as err:
         logger.error(f"Could not connect to MongoDB: {err}")
         raise
     except Exception as e:
         logger.error(f"Error during MongoDB setup: {e}")
         raise
-    finally:
-        client.close()
-        logger
 # -------------------- END MONGODB CONNECTION SETUP --------------------
 
 # -------------------- Load Data in MongoDB OPERATIONS --------------------
@@ -122,6 +118,7 @@ def load_data(json_path: str, collection) -> None:
         logger.error(f"MongoDB error during data load: {e}")
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
+
 
 # -------------------- END Load Data in MongoDB OPERATIONS --------------------
 
@@ -305,12 +302,11 @@ def avg_price_by_category(collection) -> List[Dict]:
 def main():   
     try:
         # Connect to MongoDB
-        collection = connect_to_mongodb()
-
+        client, collection = connect_to_mongodb()
         # Operation 1: Import the provided JSON file into collection 'products' in MongoDB
         logger.info("\n--- Loading data into MongoDB ---")
         # Load data and log result
-        load_data(JSON_FILE=JSON_FILE, collection=collection)
+        load_data("products_catalog.json", collection)
         logger.info(f"Data loaded into MongoDB successfully. {collection.count_documents({})} documents in collection.")
 
         # Operation 2: Basic Query 
@@ -355,6 +351,12 @@ def main():
     except Exception as e:
         print(f"Fatal error: {e}")
         logger.error(f"Fatal error: {e}")
+    
+    finally:
+            if client:
+                client.close()
+                logger.info("MongoDB connection closed.")
+
 
 # -------------------- ENTRY POINT --------------------
 if __name__ == "__main__":
