@@ -37,6 +37,7 @@ The FlexiMart Data Architecture Project focuses on designing and implementing a 
 │   ├── warehouse_data.sql
 │   ├── README.md
 │   └── analytics_queries.sql
+├── .gitignore
 └── README.md
 ```
 ---
