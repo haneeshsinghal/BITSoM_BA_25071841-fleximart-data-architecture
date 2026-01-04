@@ -18,17 +18,31 @@
 
 import subprocess
 import sys
+import os
 
+# Get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Path to requirements.txt
+requirements_path = os.path.join(script_dir, "requirements.txt")
+
+# Path to data folder
+data_folder = os.path.join(script_dir, "..", "data")
+
+# Path for log file and data quality report
+log_file_path = os.path.join(script_dir, "etl_pipeline.log")
+data_quality_report_path = os.path.join(script_dir, "data_quality_report.txt")
 
 # Function to install requirements from requirements.txt
 def install_requirements():
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-
+    """Install dependencies dynamically from requirements.txt."""
+    if os.path.exists(requirements_path):
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", requirements_path])
+    
 # Install requirements
 install_requirements()
 
 
-import os
 import logging
 import pandas as pd
 import numpy as np
@@ -44,7 +58,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 # -------------------- SETUP LOGGER --------------------
 # Configure logging
 logging.basicConfig(
-    filename='etl_pipeline.log',  # Log file name
+    filename=log_file_path,  # Log file name
     level=logging.INFO,           # Log level: INFO records all major events
     format='%(asctime)s %(levelname)s:%(message)s'  # Log format with timestamp
 )
@@ -230,7 +244,7 @@ def clean_csv_if_exists(filepath):
     try:
         if os.path.exists(filepath):
             open(filepath, 'w').close()
-            logger.info(f"Cleaned existing file: {filepath}")
+            logger.info(f"Cleaned existing file: {os.path.basename(filepath)}")
     except Exception as e:
         logger.error(f"Error cleaning file {filepath}: {e}")
 
@@ -372,6 +386,26 @@ def generate_quality_report(df, file_name):
         "Records Loaded Successfully": records_loaded_successfully
     }
 
+# Utility function to get full path of a CSV file
+def get_csv_path(filename):
+    """Return full path of a CSV file from the data folder."""
+    return os.path.join(data_folder, filename)
+
+# Function to load CSV file with error handling
+def load_csv(file_path):
+    """Load a CSV file into a pandas DataFrame with error handling."""
+    try:
+        if not os.path.exists(file_path):
+            logger.error(f"File not found: {file_path}")
+            return pd.DataFrame()
+        df = pd.read_csv(file_path)
+        logger.info(f"Loaded file successfully: {os.path.basename(file_path)} (Rows: {len(df)}, Columns: {len(df.columns)})")
+        return df
+    except Exception as e:
+        logger.error(f"Error loading file {file_path}: {e}")
+        return pd.DataFrame()
+
+
 # 
 # ## 3. Extract Raw Data
 # 
@@ -384,34 +418,17 @@ def extract_raw_data_from_csv():
     """
     Reads raw CSV files and returns DataFrames for customers, products, and sales.
     """
-    data_dir='../data'
-    try:
-        # Load customers_raw CSV files into DataFrames
-        customers = pd.read_csv(os.path.join(data_dir, 'customers_raw.csv'))
-        logger.info(f"Loaded customers_raw.csv file into DataFrame with shape {customers.shape}")
-    except Exception as e:
-        logger.error(f"Error loading customers_raw.csv: {e}")
-        customers = pd.DataFrame()
-        print(f"Error loading customers_raw.csv: {e}")
+    customers_csv_path = get_csv_path("customers_raw.csv")
+    products_csv_path = get_csv_path("products_raw.csv")
+    sales_csv_path = get_csv_path("sales_raw.csv")
 
-    try:
-        # Load products_raw.csv into DataFrame
-        products = pd.read_csv(os.path.join(data_dir, 'products_raw.csv'))
-        logger.info(f"Loaded products_raw.csv file into DataFrame with shape {products.shape}")
-    except Exception as e:
-        logger.error(f"Error loading products_raw.csv: {e}")
-        products = pd.DataFrame()
-        print(f"Error loading products_raw.csv: {e}")
-
-    try:
-        # Load sales_raw.csv into DataFrame
-        sales = pd.read_csv(os.path.join(data_dir, 'sales_raw.csv'))
-        logger.info(f"Loaded sales_raw.csv file into DataFrame with shape {sales.shape}")
-    except Exception as e:
-        logger.error(f"Error loading sales_raw.csv: {e}")
-        sales = pd.DataFrame()
-        print(f"Error loading sales_raw.csv: {e}")
-
+    customers_raw = load_csv(customers_csv_path)
+    customers = customers_raw.copy()
+    products_raw = load_csv(products_csv_path)
+    products = products_raw.copy()
+    sales_raw = load_csv(sales_csv_path)
+    sales = sales_raw.copy()
+   
     return customers, products, sales
 
 # ## 4. Transform or Clean Data
@@ -563,7 +580,7 @@ def clean_sales(sales_df):
         return sales_df
     except Exception as e:
         logger.error(f"Error cleaning sales data: {e}")
-        print(f"❌ Error cleaning sales data: {e}")
+        print(f"Error cleaning sales data: {e}")
         return pd.DataFrame()
 
 
@@ -601,7 +618,7 @@ def split_sales_to_orders(sales_clean):
         logger.info("Renamed columns in orders DataFrame to match SQL structure.")
 
         # Clean existing CSV before saving Orders DataFrame:
-        csv_path = '../data/orders.csv'
+        csv_path = data_folder + '/orders.csv'
         clean_csv_if_exists(csv_path)
 
         # Save to CSV
@@ -650,7 +667,7 @@ def split_sales_to_order_items(sales_clean):
         logger.info("Renamed columns in order_items DataFrame to match SQL structure.")
 
         # Before saving your DataFrame:
-        csv_path = '../data/order_items.csv'
+        csv_path = data_folder + '/order_items.csv'
         clean_csv_if_exists(csv_path)
 
         # Save to CSV
@@ -862,16 +879,29 @@ def load_data_to_order_items_db(order_items_df):
 
 # Generate report for each file
 
+
 def write_data_quality_report(customers, products, sales_raw):
     """
-    Generates and writes a data quality report for the ETL process.
+    Persist a data quality report to disk.
+
+    Workflow:
+        1. Accepts a report dictionary generated by `build_quality_report`.
+        2. Writes the report to the specified file path (CSV, JSON, or text).
+        3. Ensures file is created or overwritten safely.
+
+    Parameters:
+        report (dict): Data quality metrics (records processed, duplicates removed, etc.).
+        filepath (str): Destination file path for saving the report.
+
+    Returns:
+        None
     """
     report = []
     report.append(generate_quality_report(customers, "customers_raw.csv"))
     report.append(generate_quality_report(products, "products_raw.csv"))
     report.append(generate_quality_report(sales_raw, "sales_raw.csv"))
 
-    with open("data_quality_report.txt", "w") as f:
+    with open(data_quality_report_path, "w") as f:
         f.write("Data Quality Report (ETL Summary):\n\n")
         for r in report:
             f.write(f"File: {r['File']}\n")
@@ -879,6 +909,7 @@ def write_data_quality_report(customers, products, sales_raw):
             f.write(f"- Duplicates Removed: {r['Duplicates Removed']}\n")
             f.write(f"- Missing Values Handled: {r['Missing Values Handled']}\n")
             f.write(f"- Records Loaded Successfully: {r['Records Loaded Successfully']}\n\n")
+
 
 
 # -------------------- MAIN ETL PIPELINE --------------------
