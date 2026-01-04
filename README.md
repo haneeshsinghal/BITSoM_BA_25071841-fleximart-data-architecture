@@ -1,9 +1,9 @@
 # FlexiMart Data Architecture Project
 
-**Student Name:** Haneesh Singhal
-**Student ID:** BA_25071841
-**Email:** haneesh_singhal@yahoo.com
-**Date:** 04-Feb-2026
+**Student Name:** Haneesh Singhal <br>
+**Student ID:** BA_25071841 <br>
+**Email:** haneesh_singhal@yahoo.com <br>
+**Date:** 04-Feb-2026 <br>
 
 ---
 
