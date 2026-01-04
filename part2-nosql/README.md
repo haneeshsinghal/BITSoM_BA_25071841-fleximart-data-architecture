@@ -28,16 +28,16 @@ This repository contains a self-executable Python script, **`mongodb_operations.
 
 ## Installation
 
-1. **Clone this repository** (or copy the script and data files into a directory).
+- **Clone this repository** (or copy the script and data files into a directory).
 
-2. **Install dependencies:**
+- **Install dependencies:**
     ```bash
     pip install pymongo python-dotenv json5
     OR
     Run the Python Script, it will automatically install the dependencies from "requirements.txt" file.
     ```
 
-3. **Prepare your `.env` file** in the same directory:
+- **Prepare your `.env` file** in the same directory:
    **Example:**
     ```    
     MONGODB_URI=mongodb://localhost:27017/fleximart
@@ -46,7 +46,7 @@ This repository contains a self-executable Python script, **`mongodb_operations.
     ```
     *(Adjust the URI, DB, and collection as needed for your setup.)*
 
-4. **Ensure `products_catalog.json` is present** in the same directory.
+- **Ensure `products_catalog.json` is present** in the same directory.
 
 ---
 
@@ -117,8 +117,3 @@ All major events and errors are logged to mongodb_operations.log for debugging a
 
 * You can modify the script to use your own product data or extend the MongoDB operations as needed. 
 * Adjust the .env file to connect to a different MongoDB instance or database.
-
-
-### 6. License
-This project is for educational and demonstration purposes.
-
